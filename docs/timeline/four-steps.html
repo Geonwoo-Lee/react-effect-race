@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>네 단계</title>
+<style>
+  :root {
+    --shoe: #1971C2; --shoe-bg: #D0EBFF;
+    --bag: #868E96; --bag-bg: #F1F3F5;
+    --warn: #E8590C; --warn-bg: #FFF4E6;
+    --ink: #212529; --sub: #868E96; --line: #DEE2E6;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #fff; }
+  body {
+    width: 1320px; padding: 28px 40px 32px;
+    font-family: "Apple SD Gothic Neo", "Pretendard", -apple-system, sans-serif;
+    color: var(--ink);
+    word-break: keep-all;
+  }
+  h1 { margin: 0 0 6px; font-size: 22px; }
+  .lead { margin: 0 0 22px; font-size: 15px; color: var(--sub); font-weight: 600; }
+  .row { display: grid; grid-template-columns: 1fr 36px 1fr 36px 1fr 36px 1fr; align-items: stretch; }
+  .arrow { display: flex; align-items: center; justify-content: center; font-size: 26px; color: #ADB5BD; font-weight: 700; }
+  .card { border: 1.5px solid var(--line); border-radius: 14px; padding: 16px 16px 14px; display: flex; flex-direction: column; gap: 10px; }
+  .head { display: flex; align-items: baseline; gap: 8px; }
+  .num { font-size: 22px; font-weight: 800; color: var(--shoe); }
+  .name { font-size: 18px; font-weight: 800; }
+  .time { margin-left: auto; font-size: 13px; font-weight: 700; color: var(--sub); }
+  .code {
+    font-family: "SF Mono", Menlo, monospace; font-size: 13.5px; font-weight: 600;
+    background: #F8F9FA; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px;
+  }
+  .desc { font-size: 14.5px; line-height: 1.5; min-height: 44px; }
+  .log { font-size: 13.5px; font-weight: 700; color: var(--sub); }
+  .log b { color: var(--ink); }
+  .screen { margin-top: auto; border-top: 1px dashed var(--line); padding-top: 10px; display: grid; grid-template-columns: 42px 1fr; gap: 6px 8px; align-items: center; }
+  .screen .k { font-size: 13px; font-weight: 700; color: var(--sub); }
+  .chip { border-radius: 8px; padding: 6px 10px; font-size: 14.5px; font-weight: 800; text-align: center; border: 1.5px solid; }
+  .shoe { color: var(--shoe); background: var(--shoe-bg); border-color: var(--shoe); }
+  .bag { color: var(--bag); background: var(--bag-bg); border-color: #ADB5BD; }
+  .changed { box-shadow: 0 0 0 3px rgba(25, 113, 194, 0.25); }
+  .gap {
+    display: grid; grid-template-columns: 1fr 36px 1fr 36px 1fr 36px 1fr; margin-top: 14px;
+  }
+  .bracket {
+    grid-column: 1 / 6; border: 2px solid var(--warn); border-top: none; border-radius: 0 0 12px 12px;
+    height: 16px; margin: 0 6px;
+  }
+  .note {
+    grid-column: 1 / 6; margin-top: 8px; text-align: center; font-size: 15.5px; font-weight: 800; color: var(--warn);
+  }
+  .note span { background: var(--warn-bg); padding: 6px 14px; border-radius: 999px; }
+</style>
+</head>
+<body>
+  <h1>신발 탭을 누르면 화면이 새 값에 맞춰지는 네 단계</h1>
+  <p class="lead">가방 상품이 보이는 상태에서 신발 탭을 눌렀을 때 · 신발 응답은 0.3초 걸려요</p>
+
+  <div class="row">
+    <div class="card">
+      <div class="head"><span class="num">①</span><span class="name">값 변경</span><span class="time">0초</span></div>
+      <div class="code">setCategory("shoes")</div>
+      <div class="desc">탭을 누르면 category가 신발로 바뀌고 다시 렌더링돼요</div>
+      <div class="log">콘솔: —</div>
+      <div class="screen">
+        <span class="k">제목</span><span class="chip shoe changed">신발</span>
+        <span class="k">목록</span><span class="chip bag">가방 상품</span>
+      </div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="card">
+      <div class="head"><span class="num">②</span><span class="name">Effect 실행</span><span class="time">렌더링 직후</span></div>
+      <div class="code">fetchProducts(category)</div>
+      <div class="desc">category가 바뀌었으므로 Effect가 다시 실행되고, 신발 요청이 나가요</div>
+      <div class="log">콘솔: <b>요청: 신발</b></div>
+      <div class="screen">
+        <span class="k">제목</span><span class="chip shoe">신발</span>
+        <span class="k">목록</span><span class="chip bag">가방 상품</span>
+      </div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="card">
+      <div class="head"><span class="num">③</span><span class="name">응답 도착</span><span class="time">0.3초</span></div>
+      <div class="code">.then((data) =&gt; …)</div>
+      <div class="desc">신발 상품이 도착해 .then에 넘긴 함수가 실행돼요</div>
+      <div class="log">콘솔: <b>응답: 신발</b></div>
+      <div class="screen">
+        <span class="k">제목</span><span class="chip shoe">신발</span>
+        <span class="k">목록</span><span class="chip bag">가방 상품</span>
+      </div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="card">
+      <div class="head"><span class="num">④</span><span class="name">화면 갱신</span><span class="time">0.3초</span></div>
+      <div class="code">setProducts(data)</div>
+      <div class="desc">products가 바뀌어 다시 렌더링돼요. category는 그대로라 Effect는 다시 실행되지 않아요</div>
+      <div class="log">콘솔: —</div>
+      <div class="screen">
+        <span class="k">제목</span><span class="chip shoe">신발</span>
+        <span class="k">목록</span><span class="chip shoe changed">신발 상품 ✅</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="gap">
+    <div class="bracket"></div>
+    <div class="note"><span>①부터 ③까지는 응답을 기다리는 시간이에요. 이 동안 제목(신발)과 목록(가방)이 서로 달라요</span></div>
+  </div>
+</body>
+</html>
