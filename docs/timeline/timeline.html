@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>타임라인</title>
+<style>
+  html, body { margin: 0; background: #fff; }
+  body { font-family: "Apple SD Gothic Neo", "Pretendard", -apple-system, sans-serif; }
+  svg text { font-family: inherit; }
+</style>
+</head>
+<body>
+<svg id="t" xmlns="http://www.w3.org/2000/svg" width="1320" height="620" viewBox="0 0 1320 620"></svg>
+<script>
+// 단계: ?stage=1(0.5초까지) 2(0.8초까지) 3(2초, 덮어씀) 4(ignore로 해결)
+const stage = Number(new URLSearchParams(location.search).get("stage") || 3);
+const T = { 1: 0.7, 2: 1.2, 3: 2.6, 4: 2.6 }[stage];
+const fixed = stage === 4;
+
+const C = {
+  top: "#E8590C", topBg: "#FFE8CC",
+  shoe: "#1971C2", shoeBg: "#D0EBFF",
+  bag: "#868E96", bagBg: "#F1F3F5",
+  bad: "#E03131", badBg: "#FFE3E3",
+  ok: "#2B8A3E",
+  ink: "#212529", sub: "#868E96", grid: "#DEE2E6",
+};
+const X0 = 230, PX = 400;
+const x = (t) => X0 + t * PX;
+const svg = document.getElementById("t");
+const el = (tag, attrs, text) => {
+  const e = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (text !== undefined) e.textContent = text;
+  svg.appendChild(e);
+  return e;
+};
+const label = (tx, ty, text, o = {}) =>
+  el("text", { x: tx, y: ty, "font-size": o.size || 15, "font-weight": o.weight || 500,
+    fill: o.fill || C.ink, "text-anchor": o.anchor || "start", "dominant-baseline": "middle",
+    stroke: o.halo || "#fff", "stroke-width": 5, "stroke-linejoin": "round", "paint-order": "stroke" }, text);
+
+// 제목
+const titles = {
+  1: "① 상의를 누르고 0.5초 뒤 신발을 누르면, 요청 두 개가 함께 진행돼요",
+  2: "② 늦게 보낸 신발 요청의 응답이 먼저 도착해요 (0.8초)",
+  3: "③ 먼저 보낸 상의 요청의 응답이 나중에 도착해 화면을 덮어써요 (2초)",
+  4: "④ 정리 함수에서 ignore를 true로 바꾸면, 늦게 온 상의 응답은 무시돼요",
+};
+label(40, 36, titles[stage], { size: 21, weight: 700 });
+
+// 줄 이름
+const lanes = { user: 95, top: 180, shoe: 305, title: 410, list: 470 };
+const CLEAN_Y = 238;
+const laneNames = { user: "사용자", top: "상의 Effect", shoe: "신발 Effect", title: "화면 제목", list: "화면 목록" };
+for (const [k, y] of Object.entries(lanes)) {
+  label(40, y, laneNames[k], { weight: 700, fill: k === "top" ? C.top : k === "shoe" ? C.shoe : C.ink });
+}
+el("line", { x1: 40, x2: 1290, y1: 370, y2: 370, stroke: C.grid, "stroke-width": 1 });
+
+// 시간 눈금
+const ticks = [0, 0.5, 0.8, 1, 1.5, 2, 2.5];
+for (const t of ticks) {
+  const key = [0, 0.5, 0.8, 2].includes(t) && t <= T;
+  el("line", { x1: x(t), x2: x(t), y1: 70, y2: 500, stroke: key ? "#ADB5BD" : C.grid,
+    "stroke-width": 1, "stroke-dasharray": key ? "5 4" : "2 4" });
+  label(x(t), 522, `${t}초`, { anchor: "middle", size: 14, fill: key ? C.ink : C.sub, weight: key ? 700 : 400 });
+}
+// 지금 시점
+if (stage < 3) {
+  el("line", { x1: x(T), x2: x(T), y1: 70, y2: 500, stroke: C.ink, "stroke-width": 2 });
+  label(x(T) + 8, 80, `지금 ${T}초`, { size: 14, weight: 700 });
+}
+
+// 사용자 클릭
+const click = (t, text, color) => {
+  el("circle", { cx: x(t), cy: lanes.user, r: 7, fill: color });
+  label(x(t) + 14, lanes.user, text, { weight: 700, fill: color });
+};
+click(0, "상의 클릭", C.top);
+if (T >= 0.5) click(0.5, "신발 클릭", C.shoe);
+
+// 요청 막대: 끝나지 않았으면 열린 끝
+const request = (y, t0, t1, color, bg, text) => {
+  const end = Math.min(t1, T);
+  el("rect", { x: x(t0), y: y - 14, width: x(end) - x(t0), height: 28, rx: 6,
+    fill: bg, stroke: color, "stroke-width": 1.5, "stroke-dasharray": end < t1 ? "6 4" : "0" });
+  if (text) label(x(t0) + 10, y, text, { size: 14, fill: color, weight: 600, halo: bg });
+  return end >= t1;
+};
+const arrived = (t, y, color, text, textColor) => {
+  el("circle", { cx: x(t), cy: y, r: 6, fill: color });
+  label(x(t) + 12, y, text, { weight: 700, fill: textColor || color });
+};
+
+// 상의 Effect
+const topDone = request(lanes.top, 0, 2, C.top, C.topBg, "요청: 상의 · 2초 걸려요");
+// 신발 Effect
+let shoeDone = false;
+if (T >= 0.5) shoeDone = request(lanes.shoe, 0.5, 0.8, C.shoe, C.shoeBg, "");
+if (T >= 0.5) label(x(0.5), lanes.shoe + 32, "요청: 신발 · 0.3초", { size: 14, fill: C.shoe, weight: 600, anchor: "start" });
+
+// 0.5초 정리
+if (T >= 0.5) {
+  const color = fixed ? C.bad : C.sub;
+  el("line", { x1: x(0.5), x2: x(0.5), y1: lanes.top + 14, y2: CLEAN_Y - 10, stroke: color, "stroke-width": 2 });
+  if (fixed) {
+    label(x(0.5) + 8, CLEAN_Y, "✂️ 정리: 상의 → 상의 ignore = true", { size: 14, weight: 700, fill: C.bad });
+  } else {
+    label(x(0.5) + 8, CLEAN_Y, "정리: 상의 (로그만 남기고 아무것도 안 함)", { size: 14, weight: 600, fill: C.sub });
+  }
+}
+
+// ignore 표시 (4번 그림)
+const tag = (t, y, text, color, bg) => {
+  const w = 128;
+  el("rect", { x: x(t) - 4, y: y - 44, width: w, height: 24, rx: 12, fill: bg, stroke: color, "stroke-width": 1.2 });
+  label(x(t) - 4 + w / 2, y - 32, text, { size: 13, weight: 700, fill: color, anchor: "middle", halo: bg });
+};
+if (fixed) {
+  tag(0.02, lanes.top, "ignore = false", C.top, "#fff");
+  tag(0.5, lanes.top, "ignore = true", C.bad, C.badBg);
+  tag(0.5, lanes.shoe + 2, "ignore = false", C.shoe, "#fff");
+}
+
+// 응답 도착
+if (shoeDone) arrived(0.8, lanes.shoe, C.shoe, "응답: 신발 → setProducts(신발) ✅", C.shoe);
+if (topDone) {
+  if (fixed) arrived(2, lanes.top, C.bad, "응답: 상의 → ⛔ 무시: 상의", C.bad);
+  else arrived(2, lanes.top, C.bad, "응답: 상의 → setProducts(상의)", C.bad);
+}
+
+// 화면 칸
+const seg = (y, t0, t1, text, color, bg, bold) => {
+  const a = Math.max(t0, 0), b = Math.min(t1, T);
+  if (b <= a) return;
+  el("rect", { x: x(a) + 2, y: y - 17, width: x(b) - x(a) - 4, height: 34, rx: 6, fill: bg, stroke: color, "stroke-width": bold ? 2 : 1 });
+  label((x(a) + x(b)) / 2, y, text, { anchor: "middle", weight: 700, fill: color, size: 15, halo: bg });
+};
+seg(lanes.title, 0, 0.5, "상의", C.top, C.topBg);
+seg(lanes.title, 0.5, 9, "신발", C.shoe, C.shoeBg);
+seg(lanes.list, 0, 0.8, "가방 상품", C.bag, C.bagBg);
+if (fixed) {
+  seg(lanes.list, 0.8, 9, "신발 상품 ✅ (그대로 유지)", C.shoe, C.shoeBg, true);
+} else {
+  seg(lanes.list, 0.8, 2, "신발 상품 ✅", C.shoe, C.shoeBg);
+  seg(lanes.list, 2, 9, "상의 상품 ❌", C.bad, C.badBg, true);
+}
+
+// 콘솔 줄
+const logs = {
+  1: "콘솔: 정리: 가방 → 설정: 상의 → 요청: 상의 → 정리: 상의 → 설정: 신발 → 요청: 신발",
+  2: "콘솔: … → 요청: 상의 → 정리: 상의 → 요청: 신발 → 응답: 신발",
+  3: "콘솔: … → 요청: 상의 → 정리: 상의 → 요청: 신발 → 응답: 신발 → 응답: 상의   (제목은 신발, 목록은 상의)",
+  4: "콘솔: … → 요청: 상의 → 정리: 상의 → 요청: 신발 → 응답: 신발 → 응답: 상의 → 무시: 상의",
+};
+el("rect", { x: 40, y: 552, width: 1250, height: 44, rx: 8, fill: "#F8F9FA", stroke: C.grid });
+label(58, 574, logs[stage], { size: 15, fill: stage === 3 ? C.bad : C.ink, weight: 600, halo: "#F8F9FA" });
+</script>
+</body>
+</html>
